@@ -1,4 +1,4 @@
-(defpackage #:better-handler-case
+(defpackage #:simple-actors/better-handler-case
   (:use #:common-lisp)
   (:nicknames #:handler-case*)
   (:export #:handler-case*))
