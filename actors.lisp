@@ -1,8 +1,8 @@
-(defpackage :actors
-  (:use :common-lisp :utils :ipc :handler-case*)
-  (:export :actor :send :stop :defactor :channel-send :channel-receive :self :server :*current-channel*))
+(defpackage #:simple-actors
+  (:use #:common-lisp #:simple-actors/ipc #:handler-case*)
+  (:export #:actor #:send #:stop #:defactor #:channel-send #:channel-receive #:self #:server #:*current-channel*))
 
-(in-package :actors)
+(in-package #:simple-actors)
 
 (defclass actor ()
   ((mailbox :initform (make-mailbox) :initarg :mailbox)
@@ -90,26 +90,6 @@ interactively with the server, and the thread object."
      (send actor channel)
      (values channel (slot-value actor 'logic))))
 
-(defmacro with-interaction-exception-handler (&body body)
-  `(handler-case*
-    (progn ,@body)
-    ((or errors:application-error parse-error)
-     (exn) :before-unwind
-     (progn
-       (channel-send *current-channel*
-		     `(div
-		       ,(if (eq (type-of exn) 'sb-int:simple-parse-error)
-			    `(p "Invalid integer")
-			    `(p "An error occurred."))
-		       (p ,(format-error exn))
-		       (p ,(format nil "(Error of type ~a)" (type-of exn)))
-		       (p "Restarts: ")
-		       (ul
-			,@(loop for restart in (compute-restarts)
-			     collect `(li (div ,(with-output-to-string (out)
-						  (sb-kernel::restart-report restart out)))
-					  (div "(" ,(restart-name restart) ")"))))))
-       (invoke-restart (get-restart (channel-receive *current-channel*)))))))
 		    
 (defun server-interaction-repl (channel &key receive-first)
   (when receive-first

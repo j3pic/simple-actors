@@ -3,7 +3,7 @@
   (:nicknames #:handler-case*)
   (:export #:handler-case*))
 
-(in-package #:better-handler-case)
+(in-package #:simple-actors/better-handler-case)
 
 (defun mapapply (func list)
   "Maps over a list, treating each element in the list as an argument list for FUNC."
