@@ -5,7 +5,7 @@
 
   (:export #:send-message #:get-message #:make-mailbox))
 
-(in-package #:ipc)
+(in-package #:simple-actors/ipc)
 
 (define-condition mailbox-is-empty () ())
 (define-condition semaphore-timeout (simple-error) ())
