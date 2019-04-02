@@ -6,7 +6,7 @@
 
 (defclass actor ()
   ((mailbox :initform (make-mailbox) :initarg :mailbox)
-   (logic :type sb-thread:thread :initarg :logic)))
+   (logic :type bt:thread :initarg :logic)))
 
 (defmacro actor (lambda-list &rest body)
   "Similar to LAMBDA, except the object created is an ACTOR instead of a FUNCTION. The ACTOR will wait
