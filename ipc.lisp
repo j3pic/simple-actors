@@ -1,5 +1,6 @@
 (defpackage :ipc
-  (:use :common-lisp :sb-thread :sb-sys :errors)
+  ;;  (:use :common-lisp :sb-thread :sb-sys :errors)
+  (:use :common-lisp :bordeaux-threads)
   (:documentation
    "This package provides a basic method for threads to send messages to each other.")
 
@@ -8,9 +9,10 @@
 (in-package :ipc)
 
 (define-condition mailbox-is-empty () ())
+(define-condition semaphore-timeout (simple-error) ())
 
 (defstruct simple-process-mailbox
-  (lock (make-mutex) :type mutex)
+  (lock (make-lock) :type lock)
   (blocker (make-semaphore) :type semaphore)
   (unread-messages nil :type list)
   (read-messages nil :type list))
@@ -21,18 +23,20 @@
 (defmacro without-mutex ((mutex) &body body)
   `(unwind-protect
 	(progn
-	  (without-interrupts
-	    (release-mutex ,mutex :if-not-owner :warn))
+	  #+sbcl (sb-sys:without-interrupts
+		   (sb-thread:release-mutex ,mutex :if-not-owner :warn))
+	  #-sbcl (release-lock ,mutex)
 	  ,@body)
-     (without-interrupts
-       (grab-mutex ,mutex))))
+     #+sbcl (sb-sys:without-interrupts
+	      (sb-thread:grab-mutex ,mutex))
+     #-sbcl (acquire-lock ,mutex)))
 
 (defun send-message (mailbox message)
   "Sends a MESSAGE to the specified MAILBOX. The MESSAGE can be any Lisp value. If
 the mailbox does not exist, it will be created.
 
 See also: GET-MESSAGE"
-  (with-mutex ((slot-value mailbox 'lock))
+  (with-lock-held ((slot-value mailbox 'lock))
     (push message (slot-value mailbox 'unread-messages))
     (signal-semaphore (slot-value mailbox 'blocker))
     nil))
@@ -50,19 +54,19 @@ Keys:
                   'MAILBOX-IS-EMPTY will be signalled.
 
 See also: SEND-MESSAGE, MAILBOX"
-  (with-mutex ((slot-value mailbox 'lock))
+  (with-lock-held ((slot-value mailbox 'lock))
     (unless non-blocking
       (let ((sem (slot-value mailbox 'blocker)))
 	(without-mutex ((slot-value mailbox 'lock))
 	  (unless (wait-on-semaphore sem :timeout timeout)
-	    (errors:raise-error errors:semaphore-timeout () "Semaphore timeout.")))))
+	    (error 'semaphore-timeout)))))
     (cond ((slot-value mailbox 'read-messages)
 	   (when non-blocking
-	     (try-semaphore (slot-value mailbox 'blocker)))
+	     (wait-on-semaphore (slot-value mailbox 'blocker) :timeout 0))
 	   (pop (slot-value mailbox 'read-messages)))
 	  ((slot-value mailbox 'unread-messages)
 	   (when non-blocking
-	     (try-semaphore (slot-value mailbox 'blocker)))
+	     (wait-on-semaphore (slot-value mailbox 'blocker) :timeout 0))
 	   (setf (slot-value mailbox 'read-messages) (reverse (slot-value mailbox 'unread-messages)))
 	   (setf (slot-value mailbox 'unread-messages) nil)
 	   (pop (slot-value mailbox 'read-messages)))
