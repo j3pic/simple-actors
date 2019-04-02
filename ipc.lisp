@@ -1,12 +1,11 @@
-(defpackage :ipc
-  ;;  (:use :common-lisp :sb-thread :sb-sys :errors)
-  (:use :common-lisp :bordeaux-threads)
+(defpackage #:simple-actors/ipc
+  (:use #:common-lisp #:bordeaux-threads)
   (:documentation
    "This package provides a basic method for threads to send messages to each other.")
 
-  (:export :send-message :get-message :make-mailbox))
+  (:export #:send-message #:get-message #:make-mailbox))
 
-(in-package :ipc)
+(in-package #:ipc)
 
 (define-condition mailbox-is-empty () ())
 (define-condition semaphore-timeout (simple-error) ())
