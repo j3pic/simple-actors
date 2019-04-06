@@ -12,7 +12,7 @@
 
 (defstruct simple-process-mailbox
   (lock (make-lock))
-  (blocker (make-semaphore) :type semaphore)
+  (blocker (make-semaphore))
   (unread-messages nil :type list)
   (read-messages nil :type list))
 
