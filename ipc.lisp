@@ -11,7 +11,7 @@
 (define-condition semaphore-timeout (simple-error) ())
 
 (defstruct simple-process-mailbox
-  (lock (make-lock) :type lock)
+  (lock (make-lock))
   (blocker (make-semaphore) :type semaphore)
   (unread-messages nil :type list)
   (read-messages nil :type list))
