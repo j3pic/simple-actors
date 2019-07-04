@@ -2,7 +2,7 @@
     :author ("Jeremy Phelps")
     :version "1"
     :license "BSD"
-    :description "Port of banker.scm from Racket"
+    :description "Actor model implemented with closures"
     :depends-on (:bordeaux-threads)
     :components
     ((:file "actors" :depends-on ("ipc" "better-handler-case"))
