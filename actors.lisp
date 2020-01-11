@@ -24,7 +24,7 @@ the current actor."
 	  (my-lambda (lambda ,lambda-list ,@body))
 	  (my-mailbox (make-mailbox)))     
      (setf self (make-instance 'actor :mailbox my-mailbox
-			       :logic (sb-thread:make-thread
+			       :logic (bt:make-thread
 				       (lambda ()
 					 (loop for message = (get-message my-mailbox)
 					    until (equalp message '(stop))
