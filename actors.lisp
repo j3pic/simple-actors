@@ -13,12 +13,12 @@
 for messages and evaluate the BODY sequentially each time a message is received.
 
 You can send messages to the actor with SEND. The &REST arguments to SEND must match the actor's lambda-list
-with one exception: A message consisting of the single argument 'ACTORS:STOP will terminate the actor's thread
+with one exception: A message consisting of the single argument 'SIMPLE-ACTORS:STOP will terminate the actor's thread
 immediately without attempting to bind the actor's arguments or evaluate its BODY. However, the 'ACTORS:STOP
-message cannot interrupt the BODY if it is being evaluated when the message is sent. 'ACTORS:STOP is processed
+message cannot interrupt the BODY if it is being evaluated when the message is sent. 'SIMPLE-ACTORS:STOP is processed
 when the actor begins waiting for a new message.
 
-Within BODY, the variable ACTORS:SELF is lexically bound to
+Within BODY, the variable SIMPLE-ACTORS:SELF is lexically bound to
 the current actor."
   `(let* ((self nil)
 	  (my-lambda (lambda ,lambda-list ,@body))
@@ -73,7 +73,7 @@ play two roles on this channel: Either :CLIENT or :SERVER."
 
 (defmacro server (var &rest body)
   "Spawns a thread that you can interact with through a TWO-WAY-CHANNEL.
-In the new thread, that channel will be bound to the VAR (and also to ACTORS:*CURRENT-CHANNEL*) and then the BODY
+In the new thread, that channel will be bound to the VAR (and also to SIMPLE-ACTORS:*CURRENT-CHANNEL*) and then the BODY
 will be evaluated. The thread terminates when the BODY completes.
 
 The SERVER form returns two values: The two-way-channel through which you may communicate
