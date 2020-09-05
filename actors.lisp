@@ -8,6 +8,20 @@
   ((mailbox :initform (make-mailbox) :initarg :mailbox)
    (logic :type bt:thread :initarg :logic)))
 
+(defun looks-like-old-actor-form (body)
+  (handler-case
+      (destructuring-bind (first-form &rest other-forms)
+	  body
+	(declare (ignore other-forms))
+	(cond ((not (listp first-form))
+	       t)
+	      ((and (evenp (length first-form))
+		    (loop for (option value) on first-form by #'cddr
+		       always (keywordp option)))
+	       nil)
+	      (t t)))
+    (t () t)))
+
 (defmacro actor (lambda-list &rest body)
   "Similar to LAMBDA, except the object created is an ACTOR instead of a FUNCTION. The ACTOR will wait
 for messages and evaluate the BODY sequentially each time a message is received.
@@ -19,21 +33,33 @@ message cannot interrupt the BODY if it is being evaluated when the message is s
 when the actor begins waiting for a new message.
 
 Within BODY, the variable SIMPLE-ACTORS:SELF is lexically bound to
-the current actor."
-  `(let* ((self nil)
-	  (my-lambda (lambda ,lambda-list ,@body))
-	  (my-mailbox (make-mailbox)))     
-     (setf self (make-instance 'actor :mailbox my-mailbox
-			       :logic (bt:make-thread
-				       (lambda ()
-					 (loop for message = (get-message my-mailbox)
-					    until (equalp message '(stop))
-					    do (restart-case
-						   (apply my-lambda message)
-						 (skip-message () :report "Abort processing of this message"
-							       nil))))
-				       :name "Actor")))))
+the current actor.
 
+The first form of the BODY is expected to be a plist. The :CLASS property of this plist can be used
+to specify a class other than SIMPLE-ACTORS:ACTOR to use for the actor object. If the first form of the BODY doesn't
+look like a plist with property names specified by keywords, for backwards compatibility it will be
+assumed to be an ordinary form, and will be included in the body of the message-handling function.
+"
+  (let ((options
+	 (if (looks-like-old-actor-form body)
+	     (warn "SIMPLE-ACTORS:ACTOR now expects a plist after the LAMBDA-LIST.
+You passed something that doesn't look like a plist. This is deprecated.")
+	     (pop body))))
+    (destructuring-bind (&key (class 'actor)) options
+      `(let* ((self nil)
+	      (my-lambda (lambda ,lambda-list ,@body))
+	      (my-mailbox (make-mailbox)))
+	 (setf self (make-instance ',class :mailbox my-mailbox
+				   :logic (bt:make-thread
+					   (lambda ()
+					     (loop for message = (get-message my-mailbox)
+						until (equalp message '(stop))
+						do (restart-case
+						       (apply my-lambda message)
+						     (skip-message () :report "Abort processing of this message"
+								   nil))))
+					   :name "Actor")))))))
+    
 (defmacro defactor (name lambda-list &body body)
   "Like DEFUN but for actors. The resulting NAME is a variable whose
 value is an actor."
